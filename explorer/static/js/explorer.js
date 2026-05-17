@@ -127,10 +127,21 @@ function getRustBadge(score) {
     return 'Fresh Metal';
 }
 
+function normalizeMinerRow(miner) {
+    return {
+        ...miner,
+        miner_id: miner.miner_id || miner.miner,
+        multiplier: miner.multiplier ?? miner.antiquity_multiplier,
+        last_seen: miner.last_seen ?? miner.last_attest,
+        balance: miner.balance ?? miner.balance_rtc ?? miner.amount_rtc
+    };
+}
+
 function normalizeMinersPayload(payload) {
-    if (Array.isArray(payload)) return payload;
-    if (payload && Array.isArray(payload.miners)) return payload.miners;
-    return [];
+    const rows = Array.isArray(payload) ? payload : (payload?.miners || []);
+    return rows
+        .filter(miner => miner && typeof miner === 'object')
+        .map(normalizeMinerRow);
 }
 
 // API Fetcher with Error Handling

@@ -48,8 +48,18 @@ def test_explorer_normalizes_paginated_miners_payload():
         const normalize = sandbox.window.RustChainExplorer.normalizeMinersPayload;
         const rows = normalize({{
           miners: [
-            {{ miner_id: 'miner-a', device_arch: 'PowerPC G4' }},
-            {{ miner_id: 'miner-b', device_arch: 'x86_64' }}
+            {{
+              miner: 'power8-s824-sophia',
+              device_arch: 'POWER8',
+              antiquity_multiplier: 2,
+              last_attest: 1779059287
+            }},
+            {{
+              miner_id: 'legacy-miner',
+              device_arch: 'x86_64',
+              multiplier: 1.25,
+              last_seen: 1779059000
+            }}
           ],
           pagination: {{ total: 2, limit: 20, offset: 0 }}
         }});
@@ -57,6 +67,9 @@ def test_explorer_normalizes_paginated_miners_payload():
         console.log(JSON.stringify({{
           paginatedCount: rows.length,
           firstMiner: rows[0].miner_id,
+          firstMultiplier: rows[0].multiplier,
+          firstLastSeen: rows[0].last_seen,
+          secondMiner: rows[1].miner_id,
           arrayCount: normalize([{{ miner_id: 'direct' }}]).length,
           invalidCount: normalize({{ pagination: {{ total: 0 }} }}).length
         }}));
@@ -67,7 +80,10 @@ def test_explorer_normalizes_paginated_miners_payload():
 
     assert result == {
         "paginatedCount": 2,
-        "firstMiner": "miner-a",
+        "firstMiner": "power8-s824-sophia",
+        "firstMultiplier": 2,
+        "firstLastSeen": 1779059287,
+        "secondMiner": "legacy-miner",
         "arrayCount": 1,
         "invalidCount": 0,
     }
