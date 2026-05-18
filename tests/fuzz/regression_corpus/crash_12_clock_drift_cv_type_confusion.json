@@ -1,0 +1,21 @@
+{
+  "_class": "NESTED_FINGERPRINT_METRIC",
+  "_description": "fingerprint.checks.clock_drift.data.cv is a string — INVALID_FINGERPRINT_CHECKS expected instead of numeric comparison TypeError",
+  "_expected_error_code": "INVALID_FINGERPRINT_CHECKS",
+  "miner": "valid-miner",
+  "device": {"cores": 4, "arch": "x86_64"},
+  "signals": {"macs": ["aa:bb:cc:dd:ee:ff"]},
+  "report": {"nonce": "challenge-123", "commitment": "commitment-123"},
+  "fingerprint": {
+    "checks": {
+      "anti_emulation": {
+        "passed": true,
+        "data": {"vm_indicators": [], "paths_checked": ["/proc/cpuinfo"]}
+      },
+      "clock_drift": {
+        "passed": true,
+        "data": {"cv": "abc", "samples": 1000}
+      }
+    }
+  }
+}

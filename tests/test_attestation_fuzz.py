@@ -254,16 +254,52 @@ def test_attest_submit_rejects_invalid_miner_id_even_when_miner_is_valid(client)
     assert response.get_json()["code"] == "INVALID_MINER"
 
 
-@pytest.mark.parametrize("cv", ["abc", [], {"nested": "bad"}])
-def test_attest_submit_rejects_malformed_clock_drift_cv(client, cv):
+@pytest.mark.parametrize(
+    ("metric_name", "metric_value"),
+    [
+        ("cv", "abc"),
+        ("cv", []),
+        ("cv", {"nested": "bad"}),
+        ("samples", "abc"),
+        ("samples", []),
+        ("samples", {"nested": "bad"}),
+    ],
+)
+def test_attest_submit_rejects_malformed_clock_drift_metrics(client, metric_name, metric_value):
     payload = _attach_live_challenge(client, _base_payload())
-    payload["fingerprint"]["checks"]["clock_drift"]["data"]["cv"] = cv
+    payload["fingerprint"]["checks"]["clock_drift"]["data"]["cv"] = 0.092
+    payload["fingerprint"]["checks"]["clock_drift"]["data"]["samples"] = 1000
+    payload["fingerprint"]["checks"]["clock_drift"]["data"][metric_name] = metric_value
 
     response = client.post("/attest/submit", json=payload)
 
     assert response.status_code == 400
     assert response.get_json()["ok"] is False
     assert response.get_json()["code"] == "INVALID_FINGERPRINT_CHECKS"
+
+
+@pytest.mark.parametrize(
+    ("metric_name", "metric_value", "expected_reason"),
+    [
+        ("cv", "abc", "clock_drift_invalid_cv"),
+        ("samples", "abc", "clock_drift_invalid_samples"),
+    ],
+)
+def test_validate_fingerprint_data_rejects_non_numeric_clock_drift_metrics(
+    metric_name, metric_value, expected_reason
+):
+    fingerprint = _base_payload()["fingerprint"]
+    fingerprint["checks"]["clock_drift"]["data"]["cv"] = 0.092
+    fingerprint["checks"]["clock_drift"]["data"]["samples"] = 1000
+    fingerprint["checks"]["clock_drift"]["data"][metric_name] = metric_value
+
+    passed, reason = integrated_node.validate_fingerprint_data(
+        fingerprint,
+        claimed_device=_base_payload()["device"],
+    )
+
+    assert passed is False
+    assert reason == expected_reason
 
 
 def test_validate_fingerprint_data_rejects_non_dict_input():

@@ -262,6 +262,15 @@ def _attest_positive_int(value, default=1):
     return coerced if coerced > 0 else default
 
 
+def _attest_is_finite_number(value):
+    """Accept only JSON numeric values that are safe for numeric comparisons."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
 def _attest_string_list(value):
     """Coerce a list-like field into a list of non-empty strings."""
     if not isinstance(value, list):
@@ -352,13 +361,15 @@ def _validate_attestation_payload_shape(data):
                         "INVALID_FINGERPRINT_CHECKS",
                         "Field 'fingerprint.checks.clock_drift.data' must be a JSON object",
                     )
-                if isinstance(clock_data, dict) and "cv" in clock_data:
-                    cv = clock_data.get("cv")
-                    if isinstance(cv, bool) or not isinstance(cv, (int, float)) or not math.isfinite(cv):
-                        return _attest_field_error(
-                            "INVALID_FINGERPRINT_CHECKS",
-                            "Field 'fingerprint.checks.clock_drift.data.cv' must be a finite number",
-                        )
+                if isinstance(clock_data, dict):
+                    for metric_name in ("cv", "samples"):
+                        if metric_name not in clock_data:
+                            continue
+                        if not _attest_is_finite_number(clock_data[metric_name]):
+                            return _attest_field_error(
+                                "INVALID_FINGERPRINT_CHECKS",
+                                f"Field 'fingerprint.checks.clock_drift.data.{metric_name}' must be a finite number",
+                            )
 
     return None
 
@@ -2706,6 +2717,12 @@ def validate_fingerprint_data(fingerprint: dict, claimed_device: dict = None) ->
             clock_data = {}
         cv = clock_data.get("cv", 0)
         samples = clock_data.get("samples", 0)
+        if not _attest_is_finite_number(cv):
+            return False, "clock_drift_invalid_cv"
+        if not _attest_is_finite_number(samples):
+            return False, "clock_drift_invalid_samples"
+        cv = float(cv)
+        samples = float(samples)
 
         # Require meaningful sample count
         if clock_check.get("passed") == True and samples == 0 and cv == 0:
